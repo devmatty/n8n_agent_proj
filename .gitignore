@@ -1,0 +1,11 @@
+# Secrets — NEVER commit
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Data (optional — uncomment if you don't want CSVs in the repo)
+# data/
