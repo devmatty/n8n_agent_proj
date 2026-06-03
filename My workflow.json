@@ -1,0 +1,813 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        0
+      ],
+      "id": "762fd1e0-19d3-4017-8f86-b850d1af7eaf",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1af-xmV3wfSM_e5BpoB-93Oc61lEGev3bG2WjsDYvHXE",
+          "mode": "list",
+          "cachedResultName": "n8n_account_book",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1af-xmV3wfSM_e5BpoB-93Oc61lEGev3bG2WjsDYvHXE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1af-xmV3wfSM_e5BpoB-93Oc61lEGev3bG2WjsDYvHXE/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -512,
+        0
+      ],
+      "id": "ad8afd69-8ef8-4651-81c1-ae18c098af32",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cFOXXmGue4Ei27ml",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# Score each account 1-5 using the same logic as tools.py\n# Output ONLY accounts that score 4 or higher (need outreach)\n\nscored = []\n\nfor item in _items:\n    a = item[\"json\"]\n    score = 1\n    reasons = []\n\n    # Real signal: CSAT\n    csat = float(a.get(\"avg_satisfaction\") or 0)\n    if csat and csat <= 2.7:\n        score += 2\n        reasons.append(f\"low CSAT ({csat})\")\n    elif csat and csat <= 3.0:\n        score += 1\n        reasons.append(f\"soft CSAT ({csat})\")\n\n    # Real signal: critical-ticket rate\n    crit_rate = float(a.get(\"critical_rate\") or 0)\n    if crit_rate >= 0.50:\n        score += 1\n        reasons.append(f\"critical rate {int(crit_rate*100)}%\")\n\n    # Real signal: open ticket volume\n    open_tickets = int(a.get(\"open_tickets\") or 0)\n    if open_tickets >= 150:\n        score += 1\n        reasons.append(f\"{open_tickets} open tickets\")\n\n    # Synthetic signal: renewal proximity\n    days_to_renewal = int(a.get(\"days_to_renewal__SYNTH\") or 999)\n    if days_to_renewal <= 45:\n        score += 1\n        reasons.append(f\"renewal in {days_to_renewal} days\")\n\n    # Cap at 5\n    score = min(score, 5)\n\n    # Attach the score to the account\n    a[\"risk_score\"] = score\n    a[\"risk_reason\"] = \"; \".join(reasons) if reasons else \"no risk signals\"\n\n    # Only keep accounts that need outreach\n    if score >= 4:\n        scored.append({\"json\": a})\n\nreturn scored"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        0
+      ],
+      "id": "54faa4a5-6533-4f01-96ce-1d5f238bd1fa",
+      "name": "Code in Python"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-5\",\n  \"max_tokens\": 600,\n  \"system\": \"You are a Customer Success specialist at a SaaS company writing a re-engagement email to an at-risk account. Be warm, brief, and specific. Reference the real support signals. Offer a concrete next step (a 15-minute call). Three short paragraphs, no buzzwords. Use plain language with periods and commas. Do not use em-dashes (—) anywhere. If you would normally use an em-dash, split into two sentences or use a comma instead. Sign off with just 'Matthew Ruryk' on a single line, nothing else after your name. Return ONLY the email body text, no subject line, no preamble, no explanation.\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Draft a re-engagement email for the {{ $json.product_line }} account. Plan: {{ $json.plan_tier__SYNTH }}. They have {{ $json.open_tickets }} open support tickets and their average customer satisfaction is {{ $json.avg_satisfaction }}. Renewal is in {{ $json.days_to_renewal__SYNTH }} days. The risk reason flagged was: {{ $json.risk_reason }}.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "cb07962f-0402-4ecd-929a-0ecb6a3fd1cb",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "du5ZcFrX7jfc8QOt",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b9cf3961-865a-4a5d-b7bf-9fa2c5c4af05",
+              "name": "email_draft",
+              "value": "={{ $json.content[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "f24de488-b388-4c31-bd28-c8d7a22775bc",
+              "name": "product_line",
+              "value": "={{ $('Code in Python').item.json.product_line }}",
+              "type": "string"
+            },
+            {
+              "id": "4f6cb376-f646-40a4-bea6-b78ca022531d",
+              "name": "mrr",
+              "value": "={{ $('Code in Python').item.json.mrr__SYNTH }}",
+              "type": "string"
+            },
+            {
+              "id": "15161542-ba07-4d5e-919d-be8962541b07",
+              "name": "days_to_renewal",
+              "value": "={{ $('Code in Python').item.json.days_to_renewal__SYNTH }}",
+              "type": "string"
+            },
+            {
+              "id": "8e693f0a-2647-4552-9ff6-72563bd19a44",
+              "name": "risk_reason",
+              "value": "={{ $('Code in Python').item.json.risk_reason }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        0
+      ],
+      "id": "eb22e813-0bf1-4a29-bed3-190f4f954990",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "498b3e74-a49d-41f0-8718-7c74b4b8447e",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1024,
+        16
+      ],
+      "id": "b817c5d7-6222-4cb5-8a4b-74be9c5eaeb8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "matthewruryk@gmail.com",
+        "subject": "Following up on your account",
+        "message": "=<div style=\"font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; text-align: left;\">{{ $('Edit Fields').item.json.email_draft.replace(/\\n/g, '<br>') }}</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        -96
+      ],
+      "id": "1aa5c5b5-c55e-40bf-bcfc-c15d0a73ecd3",
+      "name": "Send a message",
+      "webhookId": "998e93db-c1f7-4352-ac0f-4defd8d699c4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ImIDRe1YArOjqhsK",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1af-xmV3wfSM_e5BpoB-93Oc61lEGev3bG2WjsDYvHXE",
+          "mode": "list",
+          "cachedResultName": "n8n_account_book",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1af-xmV3wfSM_e5BpoB-93Oc61lEGev3bG2WjsDYvHXE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1af-xmV3wfSM_e5BpoB-93Oc61lEGev3bG2WjsDYvHXE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "product_line": "={{ $('Edit Fields').item.json.product_line }}",
+            "status": "active",
+            "last_action": " draft_rejected",
+            "last_action_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "product_line"
+          ],
+          "schema": [
+            {
+              "id": "product_line",
+              "displayName": "product_line",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "unique_customers",
+              "displayName": "unique_customers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total_tickets",
+              "displayName": "total_tickets",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "open_tickets",
+              "displayName": "open_tickets",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "critical_tickets",
+              "displayName": "critical_tickets",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "open_rate",
+              "displayName": "open_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "critical_rate",
+              "displayName": "critical_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "avg_satisfaction",
+              "displayName": "avg_satisfaction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "days_since_activity",
+              "displayName": "days_since_activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "plan_tier__SYNTH",
+              "displayName": "plan_tier__SYNTH",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mrr__SYNTH",
+              "displayName": "mrr__SYNTH",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "renewal_date__SYNTH",
+              "displayName": "renewal_date__SYNTH",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "days_to_renewal__SYNTH",
+              "displayName": "days_to_renewal__SYNTH",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_action",
+              "displayName": "last_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_action_at",
+              "displayName": "last_action_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1328,
+        176
+      ],
+      "id": "238a42b2-2e37-401e-a60e-333a8a51840a",
+      "name": "Log Rejected",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cFOXXmGue4Ei27ml",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1af-xmV3wfSM_e5BpoB-93Oc61lEGev3bG2WjsDYvHXE",
+          "mode": "list",
+          "cachedResultName": "n8n_account_book",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1af-xmV3wfSM_e5BpoB-93Oc61lEGev3bG2WjsDYvHXE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1af-xmV3wfSM_e5BpoB-93Oc61lEGev3bG2WjsDYvHXE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "product_line": "={{ $('Edit Fields').item.json.product_line }}",
+            "status": "sent",
+            "last_action": "outreach_sent",
+            "last_action_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "product_line"
+          ],
+          "schema": [
+            {
+              "id": "product_line",
+              "displayName": "product_line",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "unique_customers",
+              "displayName": "unique_customers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total_tickets",
+              "displayName": "total_tickets",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "open_tickets",
+              "displayName": "open_tickets",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "critical_tickets",
+              "displayName": "critical_tickets",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "open_rate",
+              "displayName": "open_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "critical_rate",
+              "displayName": "critical_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "avg_satisfaction",
+              "displayName": "avg_satisfaction",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "days_since_activity",
+              "displayName": "days_since_activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "plan_tier__SYNTH",
+              "displayName": "plan_tier__SYNTH",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mrr__SYNTH",
+              "displayName": "mrr__SYNTH",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "renewal_date__SYNTH",
+              "displayName": "renewal_date__SYNTH",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "days_to_renewal__SYNTH",
+              "displayName": "days_to_renewal__SYNTH",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_action",
+              "displayName": "last_action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_action_at",
+              "displayName": "last_action_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1504,
+        -96
+      ],
+      "id": "597d56ba-f741-4f7e-9b14-781e3488fbff",
+      "name": "Log sent",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cFOXXmGue4Ei27ml",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "matthewruryk@gmail.com",
+        "subject": "=[Approval Needed] Re-engagement email for {{ $json.product_line }}",
+        "message": "=The agent has flagged an at-risk account and drafted re-engagement outreach.\n\nACCOUNT: {{ $json.product_line }}\nRISK REASON: {{ $json.risk_reason }}\nMRR: ${{ $json.mrr }}\nDAYS TO RENEWAL: {{ $json.days_to_renewal }}\n\nPROPOSED EMAIL:\n---\n{{ $json.email_draft }}\n---\n\nClick Approve to send this email, or Reject to discard.",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Approve and Send",
+            "disapproveLabel": "Reject"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        832,
+        16
+      ],
+      "id": "8c18a2d7-8a5a-499a-b96c-d5a4058e6ea6",
+      "name": "Send message and wait for response",
+      "webhookId": "bf0d1a5b-588e-4cd2-b444-0972d09d65d3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ImIDRe1YArOjqhsK",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        512,
+        144
+      ],
+      "id": "ba311158-4102-4605-b1c1-34064ea5a65f",
+      "name": "Loop Over Items"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Log sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log sent": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Rejected": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5471c8c1-959d-450f-82fd-68da05517a69",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "faeefae772345a24655903a305aafe0ea4e3839bb40bc5c7d300194f51a1e86f"
+  },
+  "id": "YXCro8FG6t6n2j0T",
+  "tags": []
+}
