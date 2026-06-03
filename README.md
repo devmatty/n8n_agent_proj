@@ -35,10 +35,10 @@ When I started learning AI development I wanted a project that showed both the a
 Python implementation (agent.py)
 
 ```
-while not done:
-  1. Send conversation history and tools to Claude
-  2. If Claude requests a tool, run it
-  3. Send the result back, loop
+The agent works in a loop, repeating until it finishes:
+  1. Send the conversation history and available tools to Claude
+  2. If Claude asks to use a tool, run that tool
+  3. Send the result back to Claude
   4. Stop when Claude produces a final summary
 ```
 
