@@ -22,7 +22,7 @@ The agent does seven things on each run:
 6. Logs what it did so the next run doesn't re-flag the same account
 7. Prints a summary of the run with a watch list of accounts to keep an eye on
 
-A full run takes about 30 seconds and costs around 20 cents in API usage.
+A full run takes about 30 seconds.
 
 ## Why I built it
 
