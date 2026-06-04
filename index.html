@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autonomous Customer Success Agent — Matthew Ruryk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --border: #2a2a2a;
+    --text: #f0ede5;
+    --text-dim: #8a8680;
+    --accent: #c9a96e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 80px 32px;
+  }
+  .tag {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 6px 12px;
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    margin-bottom: 32px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(40px, 6vw, 64px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+  }
+  .lede {
+    font-size: 20px;
+    color: var(--text-dim);
+    max-width: 640px;
+    margin-bottom: 48px;
+  }
+  .links {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 96px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn-primary:hover {
+    background: #d6b97a;
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  section {
+    margin-bottom: 96px;
+  }
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 36px;
+    letter-spacing: -0.01em;
+    margin-bottom: 32px;
+  }
+  .workflow-img {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    display: block;
+  }
+  .caption {
+    font-size: 14px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .stat {
+    background: var(--surface);
+    padding: 32px 24px;
+  }
+  .stat-num {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 500;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+  }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px;
+  }
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .step-title {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .step-body {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .prose p {
+    font-size: 17px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    max-width: 640px;
+  }
+  .prose p strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 48px;
+    margin-top: 48px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  @media (max-width: 600px) {
+    .container { padding: 48px 20px; }
+    section { margin-bottom: 64px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <span class="tag">Portfolio Project · 2026</span>
+  <h1>Autonomous Customer Success Agent</h1>
+  <p class="lede">An AI agent that watches a book of customer accounts, picks the ones at risk of churn, drafts re-engagement emails, and routes every message through a human approval gate before anything sends.</p>
+  <div class="links">
+    <a href="https://github.com/devmatty/n8n_agent_proj" class="btn btn-primary">View on GitHub →</a>
+    <a href="https://github.com/devmatty/n8n_agent_proj/blob/main/README.md" class="btn btn-secondary">Read the full README</a>
+  </div>
+
+  <section>
+    <div class="section-label">01 · The workflow</div>
+    <h2>How it actually runs</h2>
+    <img src="workflow.png" alt="n8n workflow screenshot" class="workflow-img">
+    <p class="caption">A real n8n run. 42 accounts pulled from Google Sheets, 5 flagged at risk, all 5 routed through approval. 3 approved, 2 rejected.</p>
+  </section>
+
+  <section>
+    <div class="section-label">02 · A real run</div>
+    <h2>What one execution looks like</h2>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">42</div>
+        <div class="stat-label">Accounts watched</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">5</div>
+        <div class="stat-label">Flagged at risk</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">3</div>
+        <div class="stat-label">Approved & sent</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">2</div>
+        <div class="stat-label">Drafts rejected</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-label">03 · Architecture</div>
+    <h2>Built two ways, same logic</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">→ 01</div>
+        <div class="step-title">Pull accounts</div>
+        <p class="step-body">42 product accounts read from a Google Sheet, aggregated from 8,469 real Kaggle support tickets.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">→ 02</div>
+        <div class="step-title">Score for risk</div>
+        <p class="step-body">A code node filters to at-risk accounts using CSAT, critical rate, ticket load, and renewal proximity.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">→ 03</div>
+        <div class="step-title">Draft with Claude</div>
+        <p class="step-body">Claude Sonnet 4.5 writes a specific, three-paragraph re-engagement email for each at-risk account.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">→ 04</div>
+        <div class="step-title">Human approval</div>
+        <p class="step-body">Each draft is emailed to me with Approve and Reject buttons. The workflow pauses until I click.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">→ 05</div>
+        <div class="step-title">Send or skip</div>
+        <p class="step-body">Approved emails go to the customer with clean HTML formatting. Rejected drafts get logged and discarded.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">→ 06</div>
+        <div class="step-title">Audit trail</div>
+        <p class="step-body">Every outcome writes back to the sheet with status, action, and timestamp. The next run skips already-handled accounts.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="prose">
+    <div class="section-label">04 · Why</div>
+    <h2>The thinking behind it</h2>
+    <p><strong>Built two ways.</strong> First as a Python agent using the Anthropic API with tool-calling. Then rebuilt as an n8n workflow with off-the-shelf nodes. The Python version shows I can build from primitives. The n8n version shows the same workflow assembled visually so a non-engineer could maintain it. CS Ops teams usually want option two.</p>
+    <p><strong>Human in the loop, always.</strong> Nothing sends without me clicking approve. A real CS team would never deploy an autopilot, so I didn't build one.</p>
+    <p><strong>Real data, labeled honestly.</strong> Every support signal comes from real Kaggle tickets. The synthetic financial fields are suffixed with __SYNTH so nobody mistakes them for real numbers. Felt more honest than pretending.</p>
+  </section>
+
+  <footer>
+    <strong style="color: var(--text); font-weight: 500;">Matthew Ruryk</strong>
+  </footer>
+
+</div>
+</body>
+</html>
